@@ -34,7 +34,7 @@ class CreateOrderService {
     const customer = await this.customersRepository.findById(customer_id);
 
     if (!customer) {
-      throw new AppError('Customer not found.');
+      throw new AppError('Customer does not exists.');
     }
 
     const dataProducts = await this.productsRepository.findAllById(products);

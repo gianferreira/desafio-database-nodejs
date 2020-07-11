@@ -18,7 +18,6 @@ class OrdersRepository implements IOrdersRepository {
     });
 
     await this.ormRepository.save(order);
-
     order.customer = customer;
 
     return order;
