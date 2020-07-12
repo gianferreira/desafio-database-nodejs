@@ -34,39 +34,38 @@ class CreateOrderService {
     const customer = await this.customersRepository.findById(customer_id);
 
     if (!customer) {
-      throw new AppError('Customer does not exists.');
+      throw new AppError("This customer don't exists");
     }
 
-    const dataProducts = await this.productsRepository.findAllById(products);
+    const productsWithPrice = await this.productsRepository.findAllById(
+      products.map(product => ({ id: product.id })),
+    );
 
-    const ordersProducts = products.map(product => {
-      const { id: product_id, quantity } = product;
+    if (products.length !== productsWithPrice.length) {
+      throw new AppError('Product not found');
+    }
 
-      if (!product_id || !quantity) {
-        throw new AppError('Invalid product!');
+    products.forEach(product => {
+      const quantityDatabase = productsWithPrice.find(
+        ({ id }) => id === product.id,
+      )?.quantity;
+
+      if ((quantityDatabase || 0) < product.quantity) {
+        throw new AppError('Quantity invalid.');
       }
-
-      const findProduct = dataProducts.find(
-        dataProduct => dataProduct.id === product_id,
-      );
-
-      if (!findProduct || quantity > findProduct.quantity) {
-        throw new AppError('Insufficient balance');
-      }
-
-      return {
-        product_id,
-        price: findProduct.price,
-        quantity,
-      };
     });
-
-    await this.productsRepository.updateQuantity(products);
 
     const order = await this.ordersRepository.create({
       customer,
-      products: ordersProducts,
+      products: products.map(product => ({
+        product_id: product.id,
+        price:
+          productsWithPrice.find(({ id }) => id === product.id)?.price || 0,
+        quantity: product.quantity,
+      })),
     });
+
+    await this.productsRepository.updateQuantity(products);
 
     return order;
   }
